@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings Account Interest Calculator</title>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Savings Account Interest Calculator</h1>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        {% if data %}
+            <h2>Savings Account Details</h2>
+            <table id="savingsTable" class="display">
+                <thead>
+                    <tr>
+                        <th>Start Date</th>
+                        <th>Term (months)</th>
+                        <th>Interest Rate (%)</th>
+                        <th>Frequency</th>
+                        <th>Principal</th>
+                        <th>Interval (months)</th>
+                        <th>Next Interest Date</th>
+                        <th>Interest Amount</th>
+                        <th>Bank</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                        <tr>
+                            <td>{{ row.StartDateDisplay }}</td>
+                            <td>{{ row.TermDisplay }}</td>
+                            <td>{{ "{:,.2f}".format(row.InterestRateDisplay) if row.InterestRateDisplay != 'N/A' else 'N/A' }}</td>
+                            <td>{{ row.Frequency or 'N/A' }}</td>
+                            <td>{{ "{:,.2f}".format(row.PrincipalDisplay) if row.PrincipalDisplay != 'N/A' else 'N/A' }}</td>
+                            <td>{{ row.IntervalDisplay }}</td>
+                            <td>{{ row['Next Interest Date'] }}</td>
+                            <td>{{ "{:,.2f}".format(row.InterestAmountDisplay) if row.InterestAmountDisplay != 'N/A' else '0.00' }}</td>
+                            <td>{{ row.BankDisplay }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#savingsTable').DataTable({
+                "pageLength": 10,
+                "order": [[0, "asc"]],
+                "columnDefs": [
+                    { "className": "dt-right", "targets": [2, 4, 7] } // Align numbers right
+                ]
+            });
+        });
+    </script>
+</body>
+</html>
