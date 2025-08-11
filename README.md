@@ -9,3 +9,4 @@ az keyvault secret set \
 
   pip install azure-identity azure-keyvault-secrets google-auth google-auth-oauthlib google-api-python-client
 
+az webapp deployment source config-zip --resource-group Bank --name saves --src app.zip

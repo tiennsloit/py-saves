@@ -6,6 +6,11 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import logging
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+import base64
+import json
+import os
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -17,11 +22,26 @@ RANGE_NAME = 'Sheet1!A:M'  # Extended to include Bank column
 def get_google_sheet_data():
     try:
         SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
-        creds = service_account.Credentials.from_service_account_file(
-            'credentials.json', scopes=SCOPES
-        )
-        service = build('sheets', 'v4', credentials=creds)
 
+        # 🔹 1. Get secret from Azure Key Vault
+        key_vault_url = "https://saves.vault.azure.net/"
+        secret_name = "google-sheet--credential--file"
+
+        kv_credential = DefaultAzureCredential()
+        client = SecretClient(vault_url=key_vault_url, credential=kv_credential)
+
+        secret_value = client.get_secret(secret_name).value
+
+        # 🔹 2. Decode from Base64 back to JSON
+        decoded_json = json.loads(base64.b64decode(secret_value))
+
+        # 🔹 3. Use Google credentials from memory
+        creds = service_account.Credentials.from_service_account_info(
+            decoded_json, scopes=SCOPES
+        )
+
+        # 🔹 4. Continue Google Sheets API call
+        service = build('sheets', 'v4', credentials=creds)
         result = service.spreadsheets().values().get(
             spreadsheetId=SHEET_ID, range=RANGE_NAME
         ).execute()
@@ -35,10 +55,10 @@ def get_google_sheet_data():
         data = values[1:]
         df = pd.DataFrame(data, columns=headers)
 
-        # Ensure all expected columns exist
+        # Ensure required columns exist
         for col in ['Start Date', 'Term', 'Interest Rate', 'Principal', 'Frequency', 'Bank']:
             if col not in df.columns:
-                df[col] = None  # fill with NaN if missing
+                df[col] = None
 
         # Convert data types
         df['Start Date'] = pd.to_datetime(df['Start Date'], errors='coerce')
@@ -47,8 +67,6 @@ def get_google_sheet_data():
 
         return df, None
 
-    except FileNotFoundError:
-        return None, "Service account credentials file (credentials.json) not found."
     except HttpError as e:
         return None, f"Google Sheets API error: {str(e)}"
     except Exception as e:
@@ -129,4 +147,6 @@ def index():
         return render_template('index.html', data=None, error=error_message)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Use the PORT environment variable provided by Azure, default to 5000 for local testing
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
