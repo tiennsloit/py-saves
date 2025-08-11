@@ -11,5 +11,7 @@ az keyvault secret set \
 
 az webapp deployment source config-zip --resource-group Bank --name saves --src app.zip
 
+pip install flask pandas google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client    
+
 List all the module
 pip freeze > requirements.txt
